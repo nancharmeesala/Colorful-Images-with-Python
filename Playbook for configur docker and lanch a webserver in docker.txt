@@ -1,0 +1,42 @@
+- name: Configure and run Docker container with httpd
+  hosts: managed_nodes  # Replace with your target hosts or group
+  become: yes  # Run tasks with elevated privileges
+
+  tasks:
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present  # Ensure Docker is installed
+      when: ansible_os_family == 'Debian'  # Adjust for your target OS family (e.g., RedHat, CentOS)
+
+    - name: Start and enable Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Pull the httpd server image
+      docker_image:
+        name: httpd:latest
+        state: present  # Ensure the image is present
+
+    - name: Run the httpd container
+      docker_container:
+        name: my_httpd_container  # Replace with a suitable name
+        image: httpd:latest
+        ports:
+          - "80:80"  # Expose port 80 to the public
+        state: started
+        restart_policy: always
+
+    - name: Copy HTML code to /var/www/html
+      copy:
+        src: /path/to/your/html/code/index.html  # Replace with the path to your HTML code
+        dest: /var/www/html/index.html
+      notify: Restart Apache
+
+  handlers:
+    - name: Restart Apache
+      service:
+        name: apache2  # Replace with the appropriate service name for your system
+        state: restarted
